@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -45,9 +44,62 @@ h1,h2,h3,p{margin-top:0}
 .extra-panel{display:none;position:fixed;inset:0;z-index:10;overflow:auto;background:#101418f2;padding:24px}
 .extra-panel.open{display:block}
 .scene-window{max-width:1050px;min-height:80vh;margin:auto;border:1px solid #59636c;border-radius:12px;background:#242b31;overflow:hidden}
-.scene-header{min-height:185px;padding:20px;text-align:center;background:linear-gradient(#354139,#28312d);display:flex;flex-direction:column;justify-content:center;gap:8px}
-.owner-placeholder{margin:auto;width:76px;height:76px;border:2px dashed #a1afa6;border-radius:50%;display:grid;place-items:center;font-size:30px}
-.desk{height:15px;background:#80664a;border-block:3px solid #b1946c}
+
+/* 시설별 캐릭터가 진열대 뒤에서 보이는 공통 헤더 */
+.scene-header{
+  position:relative;
+  min-height:340px;
+  padding:16px 20px 20px;
+  text-align:center;
+  background:linear-gradient(#18201f,#354139 68%,#28312d);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:8px;
+  overflow:hidden
+}
+.owner-stage{
+  position:absolute;
+  inset:0 0 65px;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  pointer-events:none
+}
+.facility-owner{
+  position:absolute;
+  top:-4px;
+  height:480px;
+  width:auto;
+  max-width:90%;
+  object-fit:contain;
+  object-position:top center;
+  filter:drop-shadow(0 8px 12px #0008)
+}
+.shop-owner{height:470px;top:-8px}
+.gallery-owner{height:480px;top:-6px}
+.vault-owner{height:480px;top:-6px}
+.scene-header h2,.scene-header p{
+  position:relative;
+  z-index:2;
+  margin-bottom:0;
+  text-shadow:0 2px 5px #000
+}
+.scene-header h2{margin-top:auto}
+.desk{
+  position:relative;
+  z-index:3;
+  height:30px;
+  background:linear-gradient(#bd9360,#76543a 40%,#4a3327);
+  border-top:5px solid #d6b17b;
+  border-bottom:5px solid #2b201b;
+  box-shadow:0 7px 14px #0008
+}
+.shop-header{background:radial-gradient(ellipse at center top,#56453b,#242522 72%)}
+.gallery-header{background:radial-gradient(ellipse at center top,#4c4737,#202522 72%)}
+.vault-header{background:radial-gradient(ellipse at center top,#333f4a,#191d23 72%)}
+
 .scene-content{padding:20px}
 .scene-title-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px}
@@ -58,16 +110,26 @@ h1,h2,h3,p{margin-top:0}
 .card .buy-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .card .buy-controls button{width:100%}
 .empty{padding:28px;text-align:center;color:#b6c0c9;border:1px dashed #57636c;border-radius:8px}
+.vault-sell-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 16px;padding:12px;background:#1d2328;border:1px solid #424c55;border-radius:8px}
+.vault-select{display:flex;align-items:center;gap:8px;line-height:1.4}
+.vault-select input{width:18px;height:18px}
 .close-button{display:block;margin:14px 14px 14px auto}
+#brideEffect{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:#000;overflow:hidden;pointer-events:none}
+#brideEffect.show{display:flex}
+#brideEffect img{display:block;width:100%;height:100%;object-fit:cover}
+#brideCaption{position:absolute;left:16px;right:16px;bottom:8vh;text-align:center;color:#fff;font-size:clamp(18px,3vw,32px);font-weight:800;text-shadow:0 2px 5px #000,0 0 14px #000;opacity:0;transition:opacity .2s}
+#brideEffect.caption #brideCaption{opacity:1}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#101418;border:1px solid #64716c;border-radius:8px;padding:12px 18px;z-index:30;display:none;max-width:90vw}
 footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
 @media(max-width:800px){
-.layout{grid-template-columns:1fr}
-.main-scene{order:-1}
-.nav-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-#app{padding:10px}
-.extra-panel{padding:8px}
-.scene-content{padding:12px}
+  .layout{grid-template-columns:1fr}
+  .main-scene{order:-1}
+  .nav-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app{padding:10px}
+  .extra-panel{padding:8px}
+  .scene-content{padding:12px}
+  .scene-header{min-height:310px}
+  .facility-owner{height:430px}
 }
 </style>
 </head>
@@ -141,8 +203,10 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
 
 <section id="shopPanel" class="extra-panel">
   <div class="scene-window">
-    <header class="scene-header">
-      <div class="owner-placeholder">🧑‍💼</div>
+    <header class="scene-header shop-header">
+      <div class="owner-stage shop-owner-stage">
+        <img class="facility-owner shop-owner" src="puyi.webp" alt="상점 주인 뿌이">
+      </div>
       <h2>상점</h2>
       <p class="muted">구매 수량을 정하고 한 번에 구매할 수 있어.</p>
     </header>
@@ -160,8 +224,10 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
 
 <section id="galleryPanel" class="extra-panel">
   <div class="scene-window">
-    <header class="scene-header">
-      <div class="owner-placeholder">🧑‍🎨</div>
+    <header class="scene-header gallery-header">
+      <div class="owner-stage gallery-owner-stage">
+        <img class="facility-owner gallery-owner" src="callisto.webp" alt="갤러리 주인 칼리스토">
+      </div>
       <h2>갤러리</h2>
       <p class="muted">성공적으로 도달한 야자수의 모습이 기록됩니다.</p>
     </header>
@@ -179,8 +245,10 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
 
 <section id="vaultPanel" class="extra-panel">
   <div class="scene-window">
-    <header class="scene-header">
-      <div class="owner-placeholder">🗝️</div>
+    <header class="scene-header vault-header">
+      <div class="owner-stage vault-owner-stage">
+        <img class="facility-owner vault-owner" src="noehyeong.webp" alt="시간 금고 주인 뇌횡">
+      </div>
       <h2>시간 금고</h2>
       <p class="muted">야자수를 보관하고, 필요할 때 다시 꺼내세요.</p>
     </header>
@@ -190,13 +258,21 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
         <h2>보관된 야자수</h2>
         <button id="storeButton" class="primary">현재 야자수 보관</button>
       </div>
-      <p class="muted">보관된 야자수를 꺼내면 현재 야자수와 교체됩니다. 최대 50개까지 보관할 수 있어.</p>
+      <p class="muted">야자수를 꺼내면 현재 야자수가 해당 야자수로 바뀌고, 꺼낸 야자수는 금고에서 사라져. 현재 야자수를 보관하면 +0으로 초기화돼. 최대 50개까지 보관할 수 있어.</p>
+      <div class="vault-sell-row">
+        <span>선택한 야자수 판매 합계: <strong id="vaultSellTotal">0 코코넛</strong></span>
+        <button id="sellVaultButton" class="gold" disabled>선택한 야자수 판매</button>
+      </div>
       <div id="vaultItems" class="cards"></div>
     </div>
     <button class="close-button" data-close>나가기</button>
   </div>
 </section>
 
+<div id="brideEffect" aria-hidden="true">
+  <img src="신부.gif" alt="" draggable="false">
+  <div id="brideCaption">지금 게임 하는 중인 건 기억하지?</div>
+</div>
 <div id="toast" role="status"></div>
 
 <script>
@@ -247,7 +323,7 @@ const itemData = {
   pass:{
     name:"패스권",
     price:150,
-    description:"사용한 수량만큼 강화 단계를 올립니다. 최대 +30을 넘길 수 없습니다."
+    description:"현재 +0~+4일 때 1개를 사용하면 즉시 +5가 됩니다. +5 이상에서는 사용할 수 없습니다."
   },
   potion:{
     name:"확률 업 포션",
@@ -320,9 +396,7 @@ function loadSave(){
     console.warn("저장 데이터 읽기 실패:",error);
     return freshSave();
   }
-}
-
-let save=loadSave();
+}let save=loadSave();
 let toastTimer=null;
 
 function persist(){
@@ -425,10 +499,10 @@ function renderInventory(){
       continue;
     }
 
-    if(id==="pass"&&save.level>=MAX_LEVEL){
+    if(id==="pass"&&save.level>=5){
       const info=document.createElement("p");
       info.className="muted";
-      info.textContent="최대 강화 단계라 사용할 수 없어.";
+      info.textContent="패스권은 +0~+4에서만 사용할 수 있어.";
       card.appendChild(info);
     }
 
@@ -442,15 +516,15 @@ function renderInventory(){
     const controls=document.createElement("div");
     controls.className="item-controls";
 
-    const quantity=createQuantityInput("useQty_"+id,1,count||1);
-    quantity.disabled=count<=0;
+    const quantity=createQuantityInput("useQty_"+id,1,id==="pass"?1:(count||1));
+    quantity.disabled=count<=0||id==="pass";
     controls.appendChild(quantity);
 
     const button=document.createElement("button");
     button.className="primary";
-    button.textContent=id==="pass"?"패스권 사용": "포션 사용";
+    button.textContent=id==="pass"?"패스권 사용":"포션 사용";
     button.disabled=count<=0||
-      (id==="pass"&&save.level>=MAX_LEVEL)||
+      (id==="pass"&&save.level>=5)||
       (id==="potion"&&save.bonus>=10);
     button.addEventListener("click",()=>{
       useItems(id,quantity.value);
@@ -543,10 +617,20 @@ function renderGallery(){
 
 function renderVault(){
   const c=document.getElementById("vaultItems");
+  const selectedIds=new Set(
+    Array.from(c.querySelectorAll("input[data-vault-select]:checked"))
+      .map(input=>Number(input.value))
+  );
   c.replaceChildren();
 
   document.getElementById("vaultCount").textContent=save.vault.length+"개";
   document.getElementById("storeButton").disabled=save.vault.length>=MAX_VAULT_SIZE;
+
+  const total=save.vault.reduce(
+    (sum,s)=>selectedIds.has(Number(s.id))?sum+treeAt(s.level).price:sum,0
+  );
+  document.getElementById("vaultSellTotal").textContent=total.toLocaleString()+" 코코넛";
+  document.getElementById("sellVaultButton").disabled=selectedIds.size===0;
 
   if(!save.vault.length){
     const e=document.createElement("div");
@@ -561,6 +645,21 @@ function renderVault(){
     const card=document.createElement("article");
     card.className="card";
 
+    const selectLabel=document.createElement("label");
+    selectLabel.className="vault-select";
+
+    const checkbox=document.createElement("input");
+    checkbox.type="checkbox";
+    checkbox.dataset.vaultSelect="true";
+    checkbox.value=String(s.id);
+    checkbox.checked=selectedIds.has(Number(s.id));
+    checkbox.setAttribute("aria-label",(s.name||t.name)+" 판매 선택");
+    checkbox.addEventListener("change",renderVault);
+
+    const selectText=document.createElement("span");
+    selectText.textContent="판매 선택 · "+t.price.toLocaleString()+" 코코넛";
+    selectLabel.append(checkbox,selectText);
+
     const h=document.createElement("h3");
     h.textContent=s.name||t.name;
 
@@ -570,23 +669,58 @@ function renderVault(){
       f.style.fontSize="34px";
       f.style.textAlign="center";
       f.textContent=t.emoji;
-      card.insertBefore(f,card.children[1]||null);
+      card.insertBefore(f,card.children[2]||null);
     });
 
     const p=document.createElement("p");
-    p.textContent="보관 단계: +"+s.level;
+    p.textContent="보관 단계: +"+s.level+" · 판매 가격: "+t.price.toLocaleString()+" 코코넛";
 
     const b=document.createElement("button");
     b.className="primary";
     b.textContent="꺼내기";
     b.addEventListener("click",()=>takeTree(s.id));
 
-    card.append(h,img,p,b);
+    card.append(selectLabel,h,img,p,b);
     c.appendChild(card);
   }
+
+  const currentSelected=new Set(
+    Array.from(c.querySelectorAll("input[data-vault-select]:checked"))
+      .map(input=>Number(input.value))
+  );
+  const selectedTotal=save.vault.reduce(
+    (sum,s)=>currentSelected.has(Number(s.id))?sum+treeAt(s.level).price:sum,0
+  );
+  document.getElementById("vaultSellTotal").textContent=selectedTotal.toLocaleString()+" 코코넛";
+  document.getElementById("sellVaultButton").disabled=currentSelected.size===0;
 }
 
-function render(){
+function sellSelectedVaultTrees(){
+  const selected=Array.from(
+    document.querySelectorAll("#vaultItems input[data-vault-select]:checked")
+  ).map(input=>Number(input.value));
+
+  if(selected.length===0){
+    showToast("판매할 야자수를 선택해 줘.");
+    return;
+  }
+
+  const selectedSet=new Set(selected);
+  const trees=save.vault.filter(s=>selectedSet.has(Number(s.id)));
+  const total=trees.reduce((sum,s)=>sum+treeAt(s.level).price,0);
+
+  if(!confirm(
+    "선택한 야자수 "+trees.length+"개를 판매할까?\n\n"+
+    "받을 코코넛: "+total.toLocaleString()+"개"
+  ))return;
+
+  save.coconuts+=total;
+  save.vault=save.vault.filter(s=>!selectedSet.has(Number(s.id)));
+  notify("시간 금고의 야자수 "+trees.length+"개를 판매하고 코코넛 "+total.toLocaleString()+"개를 받았어.");
+  persist();
+  render();
+  showToast("🥥 선택한 야자수 판매 완료!");
+}function render(){
   document.getElementById("coconuts").textContent=save.coconuts.toLocaleString();
   document.getElementById("level").textContent="+"+save.level;
   document.getElementById("successChance").textContent=chance()+"%";
@@ -737,30 +871,23 @@ function useItems(id,rawQuantity){
   let quantity=Math.min(requested,owned);
 
   if(id==="pass"){
-    const available=MAX_LEVEL-save.level;
-    if(available<=0){
-      showToast("최대 단계에서는 패스권을 사용할 수 없어.");
+    if(save.level>=5){
+      showToast("패스권은 +0~+4에서만 사용할 수 있어.");
       return;
     }
 
-    quantity=Math.min(quantity,available);
-
     if(!confirm(
-      "패스권 "+quantity+"개를 사용할까?\n"+
-      "강화 단계: +"+save.level+" → +"+(save.level+quantity)
+      "패스권 1개를 사용할까?\n"+
+      "강화 단계: +"+save.level+" → +5"
     ))return;
 
     const start=save.level;
-    save.inventory.pass-=quantity;
-
-    for(let i=0;i<quantity;i++){
-      save.level++;
-      rememberLevel(save.level);
-    }
-
+    save.inventory.pass--;
+    save.level=5;
+    for(let level=0;level<=5;level++)rememberLevel(level);
     save.bonus=0;
-    notify("패스권 "+quantity+"개 사용! +"+start+" → +"+save.level);
-    showToast("🎫 패스권 "+quantity+"개 사용 완료!");
+    notify("패스권 사용! +"+start+" → +5");
+    showToast("🎫 패스권 1개 사용 완료! +5 도달");
   }else{
     const room=10-save.bonus;
     if(room<=0){
@@ -797,6 +924,10 @@ function openPanel(id){
 }
 
 function storeTree(){
+  if(save.level<=0){
+    showToast("+0 야자수는 보관할 수 없어.");
+    return;
+  }
   if(save.vault.length>=MAX_VAULT_SIZE){
     showToast("시간 금고가 가득 찼어! 최대 50개까지 보관 가능해.");
     return;
@@ -828,31 +959,20 @@ function takeTree(id){
   }
 
   const storedTree=save.vault[i];
-  const currentTree=treeAt(save.level);
-
   if(!confirm(
-    "현재 +"+save.level+" 야자수를 금고의 +"+
-    storedTree.level+" 야자수와 교체할까?\n\n"+
-    "현재 야자수는 금고에 보관되고, 선택한 야자수를 꺼내게 돼."
+    "금고의 +"+storedTree.level+" 야자수를 꺼낼까?\n\n"+
+    "현재 야자수는 금고에 보관되지 않고 사라져."
   ))return;
 
-  const currentLevel=save.level;
   const selectedLevel=clampInt(storedTree.level,0,MAX_LEVEL);
-
   save.vault.splice(i,1);
-  save.vault.push({
-    id:save.nextVaultId++,
-    level:currentLevel,
-    name:currentTree.name
-  });
-
   save.level=selectedLevel;
   save.bonus=0;
 
-  notify("금고의 +"+selectedLevel+" 야자수를 꺼냈어. 기존 +"+currentLevel+" 야자수는 금고에 보관했어.");
+  notify("금고의 +"+selectedLevel+" 야자수를 꺼냈어. 기존 야자수는 보관되지 않았어.");
   persist();
   render();
-  showToast("🗝️ 야자수 교체 완료!");
+  showToast("🗝️ 야자수 꺼내기 완료!");
 }
 
 function tutorial(){
@@ -862,13 +982,59 @@ function tutorial(){
     "2. 실패하면 야자수가 +0으로 돌아가. 실패 방지권과 부활권으로 대비할 수 있어.\n"+
     "3. 강화된 야자수는 판매해서 코코넛을 얻을 수 있어.\n"+
     "4. 상점에서 아이템을 여러 개 한 번에 구매할 수 있어.\n"+
-    "5. 패스권과 포션은 인벤토리에서 원하는 수량만큼 사용할 수 있어.\n"+
+    "5. 패스권은 현재 +0~+4일 때 1개를 사용하면 즉시 +5가 돼. 포션은 원하는 수량만큼 사용할 수 있어.\n"+
     "6. 실패 방지권과 부활권은 강화 실패 시 자동으로 발동해.\n"+
     "7. 갤러리는 성공적으로 도달한 외형을 기록해. 실패해도 기록은 사라지지 않아.\n"+
-    "8. 시간 금고에 야자수를 보관하면 현재 야자수는 +0으로 초기화돼. 꺼낼 때는 현재 야자수와 교체돼.\n\n"+
+    "8. +0 야자수는 시간 금고에 보관할 수 없어. 보관하면 현재 야자수는 +0으로 초기화돼. 꺼낸 야자수는 현재 야자수가 되고, 기존 야자수는 보관되지 않아.\n"+
+    "9. 시간 금고에서 여러 야자수를 선택해 판매할 수 있어.\n\n"+
     "현재 버전은 +0부터 +30까지 지원해."
   );
 }
+
+/* 신부의 화면 균열 이스터 에그: 첫 1분 유휴, 이후 출현할 때마다 대기 시간이 1분 증가 */
+const brideEffect=document.getElementById("brideEffect");
+const brideCaption=document.getElementById("brideCaption");
+let idleThresholdMs=60_000;
+let lastActivityAt=Date.now();
+let brideEffectTimer=null;
+let brideCaptionTimer=null;
+let brideEventRunning=false;
+
+function resetIdleTimer(){
+  lastActivityAt=Date.now();
+}
+
+function triggerBrideEvent(){
+  if(brideEventRunning)return;
+  brideEventRunning=true;
+  idleThresholdMs+=60_000;
+  brideEffect.classList.add("show");
+  brideEffect.classList.remove("caption");
+  brideEffect.setAttribute("aria-hidden","false");
+  clearTimeout(brideEffectTimer);
+  clearTimeout(brideCaptionTimer);
+
+  // 균열 GIF를 먼저 보여 준 다음 대사를 잠깐 표시하고 효과를 닫는다.
+  brideEffectTimer=setTimeout(()=>{
+    brideEffect.classList.add("caption");
+    brideCaptionTimer=setTimeout(()=>{
+      brideEffect.classList.remove("show","caption");
+      brideEffect.setAttribute("aria-hidden","true");
+      brideEventRunning=false;
+      resetIdleTimer();
+    },2200);
+  },1400);
+}
+
+const idleActivityEvents=["pointerdown","keydown","input","change","touchstart","wheel"];
+idleActivityEvents.forEach(eventName=>{
+  document.addEventListener(eventName,resetIdleTimer,{passive:true});
+});
+setInterval(()=>{
+  if(!brideEventRunning&&Date.now()-lastActivityAt>=idleThresholdMs){
+    triggerBrideEvent();
+  }
+},500);
 
 document.getElementById("enhanceButton").addEventListener("click",enhance);
 document.getElementById("sellButton").addEventListener("click",sellTree);
@@ -877,7 +1043,23 @@ document.getElementById("shopButton").addEventListener("click",()=>openPanel("sh
 document.getElementById("galleryButton").addEventListener("click",()=>openPanel("galleryPanel"));
 document.getElementById("vaultButton").addEventListener("click",()=>openPanel("vaultPanel"));
 document.getElementById("storeButton").addEventListener("click",storeTree);
+document.getElementById("sellVaultButton").addEventListener("click",sellSelectedVaultTrees);
 document.getElementById("tutorialButton").addEventListener("click",tutorial);
+
+/* 시설 주인 이미지가 없을 때도 화면의 구매/보관 기능은 정상 작동하도록 처리 */
+document.querySelectorAll(".facility-owner").forEach(img=>{
+  img.addEventListener("error",()=>{
+    img.style.display="none";
+    const stage=img.parentElement;
+    if(stage&&!stage.querySelector(".owner-image-missing")){
+      const hint=document.createElement("div");
+      hint.className="owner-image-missing";
+      hint.textContent=img.alt+" 이미지 파일을 같은 폴더에 넣어 주세요.";
+      hint.style.cssText="position:absolute;top:24px;left:12px;right:12px;color:#d8c9a7;font-size:13px;text-align:center;z-index:1";
+      stage.appendChild(hint);
+    }
+  },{once:true});
+});
 
 document.querySelectorAll("[data-close]").forEach(b=>{
   b.addEventListener("click",closePanels);
