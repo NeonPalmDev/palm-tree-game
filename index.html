@@ -27,6 +27,10 @@ h1,h2,h3,p{margin-top:0}
 .tree-picture{width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 8px 9px #0005)}
 .tree-emoji{font-size:100px}
 .tree-name{font-weight:bold;font-size:18px}
+.tree-description{max-width:520px;line-height:1.55;color:#c4cdd4;font-size:14px;white-space:pre-wrap}
+.tree-description-panel{padding:10px 12px;margin:8px 0 12px;background:#1d2328;border:1px solid #424c55;border-radius:8px;line-height:1.55}
+.tree-description-panel strong{display:block;margin-bottom:5px}
+.card .tree-description{color:#d0d7dd}
 .actions,.nav-buttons,.inventory,.button-row,.item-controls{display:flex;gap:8px;flex-wrap:wrap}
 .actions button{flex:1}
 .nav-buttons{flex-direction:column}
@@ -144,6 +148,7 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
     <div class="button-row">
       <span class="inventory-item">🥥 코코넛 <b id="coconuts">0</b></span>
       <button id="tutorialButton">튜토리얼</button>
+      <button id="hardResetButton" class="danger">하드리셋</button>
       <button id="closeButton" class="danger">폐장</button>
     </div>
   </header>
@@ -154,6 +159,7 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
       <div class="stat">강화 단계<strong id="level">+0</strong></div>
       <div class="stat">성공 확률<strong class="good" id="successChance">95%</strong></div>
       <div class="stat">실패 확률<strong class="bad" id="failureChance">5%</strong></div>
+      <div class="tree-description-panel"><strong>야자수 설명</strong><div id="treeDescription" class="tree-description">설명 준비 중</div></div>
       <div class="stat">현재 판매 가격<strong class="gold-text" id="salePrice">0 코코넛</strong></div>
       <div class="stat">확률 보너스<strong class="gold-text" id="bonus">+0%p</strong></div>
       <div class="stat">최고 도달 단계<strong id="bestLevel">+0</strong></div>
@@ -278,7 +284,7 @@ footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
 <script>
 "use strict";
 
-/* v3: 기존 v2 저장 데이터를 불러오지 않는 새 저장 공간 */
+/* v3 저장 공간: 패스권 사용 카운터를 포함하며, 하드리셋은 이 게임의 저장 데이터만 초기화 */
 const SAVE_KEY = "palmGameSave_v3";
 const MAX_LEVEL = 30;
 const MAX_VAULT_SIZE = 50;
@@ -313,6 +319,9 @@ const treeData = [
     };
   })
 ];
+treeData.forEach(tree=>{
+  if(typeof tree.description!=="string")tree.description="";
+});
 
 const itemData = {
   protection:{
@@ -322,8 +331,8 @@ const itemData = {
   },
   pass:{
     name:"패스권",
-    price:150,
-    description:"현재 +0~+4일 때 1개를 사용하면 즉시 +5가 됩니다. +5 이상에서는 사용할 수 없습니다."
+    price:300,
+    description:"1개를 사용하면 강화 단계가 +1 증가합니다. 강화 실패 전까지 최대 10개까지 사용할 수 있으며, 강화 실패 시 사용 한도가 초기화됩니다."
   },
   potion:{
     name:"확률 업 포션",
@@ -344,6 +353,7 @@ function freshSave(){
     bestLevel:0,
     bonus:0,
     inventory:{protection:0,pass:0,potion:0,revive:0},
+    passUsesSinceFailure:0,
     gallery:[0],
     vault:[],
     nextVaultId:1
@@ -365,6 +375,7 @@ function loadSave(){
     const r={...base,...parsed};
 
     r.inventory={...base.inventory,...(parsed.inventory||{})};
+    r.passUsesSinceFailure=clampInt(parsed.passUsesSinceFailure??0,0,10);
     for(const id of Object.keys(itemData)){
       r.inventory[id]=clampInt(r.inventory[id],0,Number.MAX_SAFE_INTEGER);
     }
@@ -458,6 +469,7 @@ function renderTree(){
   visual.appendChild(img);
   document.getElementById("treeName").textContent=tree.name;
   document.getElementById("treeLevel").textContent="현재 단계: +"+save.level;
+  document.getElementById("treeDescription").textContent=tree.description||"설명 준비 중";
 }
 
 function createQuantityInput(id,value=1,max=MAX_PURCHASE_QUANTITY){
@@ -499,10 +511,11 @@ function renderInventory(){
       continue;
     }
 
-    if(id==="pass"&&save.level>=5){
+    if(id==="pass"){
+      const remaining=Math.max(0,10-save.passUsesSinceFailure);
       const info=document.createElement("p");
       info.className="muted";
-      info.textContent="패스권은 +0~+4에서만 사용할 수 있어.";
+      info.textContent="이번 실패 전까지 사용 가능: "+remaining+" / 10개";
       card.appendChild(info);
     }
 
@@ -516,15 +529,16 @@ function renderInventory(){
     const controls=document.createElement("div");
     controls.className="item-controls";
 
-    const quantity=createQuantityInput("useQty_"+id,1,id==="pass"?1:(count||1));
-    quantity.disabled=count<=0||id==="pass";
+    const passRemaining=Math.max(0,10-save.passUsesSinceFailure);
+    const quantity=createQuantityInput("useQty_"+id,1,id==="pass"?Math.max(1,Math.min(count,passRemaining,MAX_LEVEL-save.level)):(count||1));
+    quantity.disabled=count<=0||(id==="pass"&&(passRemaining<=0||save.level>=MAX_LEVEL));
     controls.appendChild(quantity);
 
     const button=document.createElement("button");
     button.className="primary";
     button.textContent=id==="pass"?"패스권 사용":"포션 사용";
     button.disabled=count<=0||
-      (id==="pass"&&save.level>=5)||
+      (id==="pass"&&(save.level>=MAX_LEVEL||passRemaining<=0))||
       (id==="potion"&&save.bonus>=10);
     button.addEventListener("click",()=>{
       useItems(id,quantity.value);
@@ -610,7 +624,11 @@ function renderGallery(){
     d.className="good";
     d.textContent="수집 완료";
 
-    card.append(h,img,d);
+    const description=document.createElement("p");
+    description.className="tree-description";
+    description.textContent=t.description||"설명 준비 중";
+
+    card.append(h,img,d,description);
     c.appendChild(card);
   }
 }
@@ -758,7 +776,9 @@ function enhance(){
     save.bonus=0;
     notify("강화 성공! +"+old+" → +"+save.level);
     showToast("✨ 강화 성공!");
-  }else if(save.inventory.protection>0){
+  }else{
+    save.passUsesSinceFailure=0;
+    if(save.inventory.protection>0){
     save.inventory.protection--;
     notify("실패 방지권이 발동했어! 야자수를 지켰다.");
     showToast("🛡️ 야자수 보호 성공");
@@ -783,11 +803,12 @@ function enhance(){
       notify("부활권을 사용하지 않았어. 야자수가 +0으로 돌아갔어.");
       showToast("💥 강화 실패...");
     }
-  }else{
-    save.level=0;
-    save.bonus=0;
-    notify("강화 실패! 야자수가 폭발해서 +0으로 돌아갔어.");
-    showToast("💥 강화 실패...");
+    }else{
+      save.level=0;
+      save.bonus=0;
+      notify("강화 실패! 야자수가 폭발해서 +0으로 돌아갔어.");
+      showToast("💥 강화 실패...");
+    }
   }
 
   persist();
@@ -871,23 +892,32 @@ function useItems(id,rawQuantity){
   let quantity=Math.min(requested,owned);
 
   if(id==="pass"){
-    if(save.level>=5){
-      showToast("패스권은 +0~+4에서만 사용할 수 있어.");
+    const remaining=Math.max(0,10-save.passUsesSinceFailure);
+    const room=Math.max(0,MAX_LEVEL-save.level);
+    if(remaining<=0){
+      showToast("강화 실패 전까지 사용할 수 있는 패스권 10개를 모두 사용했어.");
+      return;
+    }
+    if(room<=0){
+      showToast("이미 최대 강화 단계야.");
       return;
     }
 
+    quantity=Math.min(requested,owned,remaining,room);
     if(!confirm(
-      "패스권 1개를 사용할까?\n"+
-      "강화 단계: +"+save.level+" → +5"
+      "패스권 "+quantity+"개를 사용할까?\n"+
+      "강화 단계: +"+save.level+" → +"+(save.level+quantity)+"\n"+
+      "실패 전 사용량: "+(save.passUsesSinceFailure+quantity)+" / 10개"
     ))return;
 
     const start=save.level;
-    save.inventory.pass--;
-    save.level=5;
-    for(let level=0;level<=5;level++)rememberLevel(level);
+    save.inventory.pass-=quantity;
+    save.level+=quantity;
+    save.passUsesSinceFailure+=quantity;
+    for(let level=start+1;level<=save.level;level++)rememberLevel(level);
     save.bonus=0;
-    notify("패스권 사용! +"+start+" → +5");
-    showToast("🎫 패스권 1개 사용 완료! +5 도달");
+    notify("패스권 "+quantity+"개 사용! +"+start+" → +"+save.level);
+    showToast("🎫 패스권 "+quantity+"개 사용 완료!");
   }else{
     const room=10-save.bonus;
     if(room<=0){
@@ -975,6 +1005,16 @@ function takeTree(id){
   showToast("🗝️ 야자수 꺼내기 완료!");
 }
 
+function hardReset(){
+  if(!confirm("하드리셋할까?\n\n코코넛, 강화 단계, 인벤토리, 갤러리, 시간 금고를 포함한 이 게임의 저장 데이터가 전부 초기화돼. 이 작업은 되돌릴 수 없어."))return;
+  save=freshSave();
+  persist();
+  closePanels();
+  render();
+  notify("하드리셋 완료! 야자수 강화 게임을 처음부터 시작해.");
+  showToast("🧹 저장 데이터가 초기화됐어.");
+}
+
 function tutorial(){
   alert(
     "🌴 야자수 강화 게임 튜토리얼\n\n"+
@@ -982,7 +1022,7 @@ function tutorial(){
     "2. 실패하면 야자수가 +0으로 돌아가. 실패 방지권과 부활권으로 대비할 수 있어.\n"+
     "3. 강화된 야자수는 판매해서 코코넛을 얻을 수 있어.\n"+
     "4. 상점에서 아이템을 여러 개 한 번에 구매할 수 있어.\n"+
-    "5. 패스권은 현재 +0~+4일 때 1개를 사용하면 즉시 +5가 돼. 포션은 원하는 수량만큼 사용할 수 있어.\n"+
+    "5. 패스권 1개는 강화 단계를 +1 올려. 강화 실패 전까지 최대 10개를 사용할 수 있고, 실패하면 사용 한도가 초기화돼. 패스권 가격은 300 코코넛이야. 포션은 원하는 수량만큼 사용할 수 있어.\n"+
     "6. 실패 방지권과 부활권은 강화 실패 시 자동으로 발동해.\n"+
     "7. 갤러리는 성공적으로 도달한 외형을 기록해. 실패해도 기록은 사라지지 않아.\n"+
     "8. +0 야자수는 시간 금고에 보관할 수 없어. 보관하면 현재 야자수는 +0으로 초기화돼. 꺼낸 야자수는 현재 야자수가 되고, 기존 야자수는 보관되지 않아.\n"+
@@ -1045,6 +1085,7 @@ document.getElementById("vaultButton").addEventListener("click",()=>openPanel("v
 document.getElementById("storeButton").addEventListener("click",storeTree);
 document.getElementById("sellVaultButton").addEventListener("click",sellSelectedVaultTrees);
 document.getElementById("tutorialButton").addEventListener("click",tutorial);
+document.getElementById("hardResetButton").addEventListener("click",hardReset);
 
 /* 시설 주인 이미지가 없을 때도 화면의 구매/보관 기능은 정상 작동하도록 처리 */
 document.querySelectorAll(".facility-owner").forEach(img=>{
