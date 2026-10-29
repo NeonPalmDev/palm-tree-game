@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>야자수 강화 게임</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#171b20;color:#f1f4f6;font-family:Arial,"Malgun Gothic",sans-serif}
+button,input{font:inherit}
+button{padding:10px 13px;border:1px solid #58636e;border-radius:7px;background:#303942;color:inherit;cursor:pointer;font-weight:600}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:#286b4b}
+button.gold{background:#715d2c}
+button.danger{background:#743b40}
+input[type=number]{width:78px;padding:8px;border:1px solid #58636e;border-radius:6px;background:#171b20;color:#fff}
+h1,h2,h3,p{margin-top:0}
+.muted,small{color:#b6c0c9}
+#app{max-width:1450px;margin:auto;padding:18px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.layout{display:grid;grid-template-columns:minmax(180px,.85fr) minmax(300px,1.6fr) minmax(180px,.85fr);gap:14px}
+.panel{background:#252c33;border:1px solid #3b444d;border-radius:12px;padding:16px}
+.stat{padding:12px 0;border-bottom:1px solid #414b54}
+.stat strong{display:block;font-size:22px;margin-top:5px}
+.main-scene{text-align:center}
+.tree-area{min-height:230px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;margin:15px 0;background:radial-gradient(ellipse,#3a4a42,#26332f 55%,#252c33 80%);border:1px solid #46574d;border-radius:12px;padding:16px}
+.tree-picture{width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 8px 9px #0005)}
+.tree-emoji{font-size:100px}
+.tree-name{font-weight:bold;font-size:18px}
+.tree-description{max-width:520px;line-height:1.55;color:#c4cdd4;font-size:14px;white-space:pre-wrap}
+.tree-description-panel{padding:10px 12px;margin:8px 0 12px;background:#1d2328;border:1px solid #424c55;border-radius:8px;line-height:1.55}
+.tree-description-panel strong{display:block;margin-bottom:5px}
+.card .tree-description{color:#d0d7dd}
+.actions,.nav-buttons,.inventory,.button-row,.item-controls{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{flex:1}
+.nav-buttons{flex-direction:column}
+.nav-buttons button{text-align:left}
+.inventory{margin-top:14px;align-items:stretch}
+.inventory-item{padding:8px 10px;background:#1d2328;border-radius:7px;border:1px solid #424c55;font-size:13px}
+.inventory-card{width:100%;padding:12px;background:#1d2328;border:1px solid #424c55;border-radius:8px;text-align:left}
+.inventory-card h4{margin:0 0 8px}
+.inventory-card p{margin:0 0 8px}
+.item-controls{align-items:center;margin-top:8px}
+.notice{margin-top:12px;min-height:24px;color:#f2cf70;line-height:1.5}
+.good{color:#78c99a}
+.bad{color:#f07878}
+.gold-text{color:#f2cf70}
+.extra-panel{display:none;position:fixed;inset:0;z-index:10;overflow:auto;background:#101418f2;padding:24px}
+.extra-panel.open{display:block}
+.scene-window{max-width:1050px;min-height:80vh;margin:auto;border:1px solid #59636c;border-radius:12px;background:#242b31;overflow:hidden}
+
+/* 시설별 캐릭터가 진열대 뒤에서 보이는 공통 헤더 */
+.scene-header{
+  position:relative;
+  min-height:340px;
+  padding:16px 20px 20px;
+  text-align:center;
+  background:linear-gradient(#18201f,#354139 68%,#28312d);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:8px;
+  overflow:hidden
+}
+.owner-stage{
+  position:absolute;
+  inset:0 0 65px;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  pointer-events:none
+}
+.facility-owner{
+  position:absolute;
+  top:-4px;
+  height:480px;
+  width:auto;
+  max-width:90%;
+  object-fit:contain;
+  object-position:top center;
+  filter:drop-shadow(0 8px 12px #0008)
+}
+.shop-owner{height:470px;top:-8px}
+.gallery-owner{height:480px;top:-6px}
+.vault-owner{height:480px;top:-6px}
+.scene-header h2,.scene-header p{
+  position:relative;
+  z-index:2;
+  margin-bottom:0;
+  text-shadow:0 2px 5px #000
+}
+.scene-header h2{margin-top:auto}
+.desk{
+  position:relative;
+  z-index:3;
+  height:30px;
+  background:linear-gradient(#bd9360,#76543a 40%,#4a3327);
+  border-top:5px solid #d6b17b;
+  border-bottom:5px solid #2b201b;
+  box-shadow:0 7px 14px #0008
+}
+.shop-header{background:radial-gradient(ellipse at center top,#56453b,#242522 72%)}
+.gallery-header{background:radial-gradient(ellipse at center top,#4c4737,#202522 72%)}
+.vault-header{background:radial-gradient(ellipse at center top,#333f4a,#191d23 72%)}
+
+.scene-content{padding:20px}
+.scene-title-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px}
+.card{background:#303840;border:1px solid #4b5660;border-radius:9px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card p{margin:0;line-height:1.5}
+.card button{margin-top:auto}
+.card-image{width:100%;height:150px;object-fit:contain;background:#252c33;border-radius:7px}
+.card .buy-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.card .buy-controls button{width:100%}
+.empty{padding:28px;text-align:center;color:#b6c0c9;border:1px dashed #57636c;border-radius:8px}
+.vault-sell-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 16px;padding:12px;background:#1d2328;border:1px solid #424c55;border-radius:8px}
+.vault-select{display:flex;align-items:center;gap:8px;line-height:1.4}
+.vault-select input{width:18px;height:18px}
+.close-button{display:block;margin:14px 14px 14px auto}
+#brideEffect{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:#000;overflow:hidden;pointer-events:none}
+#brideEffect.show{display:flex}
+#brideEffect img{display:block;width:100%;height:100%;object-fit:cover}
+#brideCaption{position:absolute;left:16px;right:16px;bottom:8vh;text-align:center;color:#fff;font-size:clamp(18px,3vw,32px);font-weight:800;text-shadow:0 2px 5px #000,0 0 14px #000;opacity:0;transition:opacity .2s}
+#brideEffect.caption #brideCaption{opacity:1}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#101418;border:1px solid #64716c;border-radius:8px;padding:12px 18px;z-index:30;display:none;max-width:90vw}
+footer{text-align:center;color:#7f8b94;padding:20px;font-size:12px}
+@media(max-width:800px){
+  .layout{grid-template-columns:1fr}
+  .main-scene{order:-1}
+  .nav-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app{padding:10px}
+  .extra-panel{padding:8px}
+  .scene-content{padding:12px}
+  .scene-header{min-height:310px}
+  .facility-owner{height:430px}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="topbar">
+    <div>
+      <h1>🌴 야자수 강화 게임</h1>
+      <small>강화하고, 수집하고, 살아남아라.</small>
+    </div>
+    <div class="button-row">
+      <span class="inventory-item">🥥 코코넛 <b id="coconuts">0</b></span>
+      <button id="tutorialButton">튜토리얼</button>
+      <button id="hardResetButton" class="danger">하드리셋</button>
+      <button id="closeButton" class="danger">폐장</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel">
+      <h2>현재 상태</h2>
+      <div class="stat">강화 단계<strong id="level">+0</strong></div>
+      <div class="stat">성공 확률<strong class="good" id="successChance">95%</strong></div>
+      <div class="stat">실패 확률<strong class="bad" id="failureChance">5%</strong></div>
+      <div class="tree-description-panel"><strong>야자수 설명</strong><div id="treeDescription" class="tree-description">설명 준비 중</div></div>
+      <div class="stat">현재 판매 가격<strong class="gold-text" id="salePrice">0 코코넛</strong></div>
+      <div class="stat">확률 보너스<strong class="gold-text" id="bonus">+0%p</strong></div>
+      <div class="stat">최고 도달 단계<strong id="bestLevel">+0</strong></div>
+      <p class="muted" style="line-height:1.6;margin-top:14px">
+        강화 단계가 높을수록 성공은 어려워진다. 신중하게 결정하자.
+      </p>
+    </aside>
+
+    <main class="panel main-scene">
+      <h2>야자수 강화실</h2>
+      <div class="tree-area">
+        <div id="treeVisual" class="tree-emoji">🌴</div>
+        <div id="treeName" class="tree-name">내 손그림 야자수</div>
+        <div class="muted" id="treeLevel">현재 +0</div>
+      </div>
+      <div class="actions">
+        <button id="enhanceButton" class="primary">⚒️ 강화</button>
+        <button id="resetButton">초기화</button>
+        <button id="sellButton" class="gold">판매하기</button>
+      </div>
+      <div id="notice" class="notice" aria-live="polite">야자수 강화실에 오신 것을 환영합니다.</div>
+      <hr>
+      <h3 style="text-align:left">인벤토리</h3>
+      <p class="muted" style="text-align:left;font-size:13px">
+        수량을 선택해 아이템을 여러 개 사용할 수 있어. 실패 방지권과 부활권은 강화 실패 시 자동 발동해.
+      </p>
+      <div id="inventoryItems" class="inventory"></div>
+    </main>
+
+    <aside class="panel">
+      <h2>시설</h2>
+      <div class="nav-buttons">
+        <button id="vaultButton">🗄️ 시간 금고</button>
+        <button id="galleryButton">🖼️ 갤러리</button>
+        <button id="shopButton">🛒 상점</button>
+      </div>
+      <hr>
+      <h3>기록</h3>
+      <div class="stat">갤러리 수집<strong id="galleryCount">1개</strong></div>
+      <div class="stat">금고 보관<strong id="vaultCount">0개</strong></div>
+      <div class="stat">아이템 종류<strong id="itemCount">4종</strong></div>
+    </aside>
+  </div>
+
+  <footer>야자수 강화 게임 · 진행 상황은 이 브라우저에 저장됩니다.</footer>
+</div>
+
+<section id="shopPanel" class="extra-panel">
+  <div class="scene-window">
+    <header class="scene-header shop-header">
+      <div class="owner-stage shop-owner-stage">
+        <img class="facility-owner shop-owner" src="puyi.webp" alt="상점 주인 뿌이">
+      </div>
+      <h2>상점</h2>
+      <p class="muted">구매 수량을 정하고 한 번에 구매할 수 있어.</p>
+    </header>
+    <div class="desk"></div>
+    <div class="scene-content">
+      <div class="scene-title-row">
+        <h2>판매 물품</h2>
+        <span class="inventory-item">🥥 <b id="shopCoconuts">0</b></span>
+      </div>
+      <div id="shopItems" class="cards"></div>
+    </div>
+    <button class="close-button" data-close>나가기</button>
+  </div>
+</section>
+
+<section id="galleryPanel" class="extra-panel">
+  <div class="scene-window">
+    <header class="scene-header gallery-header">
+      <div class="owner-stage gallery-owner-stage">
+        <img class="facility-owner gallery-owner" src="callisto.webp" alt="갤러리 주인 칼리스토">
+      </div>
+      <h2>갤러리</h2>
+      <p class="muted">성공적으로 도달한 야자수의 모습이 기록됩니다.</p>
+    </header>
+    <div class="desk"></div>
+    <div class="scene-content">
+      <div class="scene-title-row">
+        <h2>수집 기록</h2>
+        <span id="gallerySubtitle" class="muted"></span>
+      </div>
+      <div id="galleryItems" class="cards"></div>
+    </div>
+    <button class="close-button" data-close>나가기</button>
+  </div>
+</section>
+
+<section id="vaultPanel" class="extra-panel">
+  <div class="scene-window">
+    <header class="scene-header vault-header">
+      <div class="owner-stage vault-owner-stage">
+        <img class="facility-owner vault-owner" src="noehyeong.webp" alt="시간 금고 주인 뇌횡">
+      </div>
+      <h2>시간 금고</h2>
+      <p class="muted">야자수를 보관하고, 필요할 때 다시 꺼내세요.</p>
+    </header>
+    <div class="desk"></div>
+    <div class="scene-content">
+      <div class="scene-title-row">
+        <h2>보관된 야자수</h2>
+        <button id="storeButton" class="primary">현재 야자수 보관</button>
+      </div>
+      <p class="muted">야자수를 꺼내면 현재 야자수가 해당 야자수로 바뀌고, 꺼낸 야자수는 금고에서 사라져. 현재 야자수를 보관하면 +0으로 초기화돼. 최대 50개까지 보관할 수 있어.</p>
+      <div class="vault-sell-row">
+        <span>선택한 야자수 판매 합계: <strong id="vaultSellTotal">0 코코넛</strong></span>
+        <button id="sellVaultButton" class="gold" disabled>선택한 야자수 판매</button>
+      </div>
+      <div id="vaultItems" class="cards"></div>
+    </div>
+    <button class="close-button" data-close>나가기</button>
+  </div>
+</section>
+
+<div id="brideEffect" aria-hidden="true">
+  <img src="신부.gif" alt="" draggable="false">
+  <div id="brideCaption">지금 게임 하는 중인 건 기억하지?</div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+
+/* v3 저장 공간: 패스권 사용 카운터를 포함하며, 하드리셋은 이 게임의 저장 데이터만 초기화 */
+const SAVE_KEY = "palmGameSave_v3";
+const MAX_LEVEL = 30;
+const MAX_VAULT_SIZE = 50;
+const MAX_PURCHASE_QUANTITY = 9999;
+
+const BASE_CHANCES = [
+  95,92,88,84,78,72,65,58,50,40,
+  38,36,34,32,30,28,26,24,22,20,
+  19,18,17,16,15,14,13,12,11,10
+];
+
+const treeData = [
+  {level:0,name:"내 손그림 야자수",image:"palm0.jpg",emoji:"🌴",price:0},
+  {level:1,name:"퀄리티 개선 야자수",image:"palm1.jpg",emoji:"🌴✨",price:10},
+  {level:2,name:"바나나를 쓴 야자수",image:"palm2.jpg",emoji:"🍌🌴",price:20},
+  {level:3,name:"코코넛을 쓴 야자수",image:"palm3.jpg",emoji:"🥥🌴",price:30},
+  {level:4,name:"영정사진에 들어간 야자수",image:"palm4.jpg",emoji:"🖼️🌴",price:50},
+  {level:5,name:"영정사진에 들어간 바나나 야자수",image:"palm5.jpg",emoji:"🍌🖼️",price:80},
+  {level:6,name:"날개 야자수",image:"palm6.jpg",emoji:"🌴🪽",price:120},
+  {level:7,name:"천사 야자수",image:"palm7.jpg",emoji:"👼🌴",price:180},
+  {level:8,name:"흑화 야자수",image:"palm8.jpg",emoji:"🌑🌴",price:260},
+  {level:9,name:"대마왕 야자수",image:"palm9.jpg",emoji:"😈🌴",price:400},
+  {level:10,name:"최강의 해결사 야자수",image:"palm10.jpg",emoji:"⚔️🌴",price:600},
+  ...Array.from({length:20},(_,i)=>{
+    const level=i+11;
+    return {
+      level,
+      name:`미지의 야자수 +${level}`,
+      image:`palm${level}.jpg`,
+      emoji:"🌴✨",
+      price:600+(level-10)*150
+    };
+  })
+];
+treeData.forEach(tree=>{
+  if(typeof tree.description!=="string")tree.description="";
+});
+
+const itemData = {
+  protection:{
+    name:"실패 방지권",
+    price:35,
+    description:"강화 실패 시 자동으로 1개 사용해 해당 실패를 막아 줍니다."
+  },
+  pass:{
+    name:"패스권",
+    price:300,
+    description:"1개를 사용하면 강화 단계가 +1 증가합니다. 강화 실패 전까지 최대 10개까지 사용할 수 있으며, 강화 실패 시 사용 한도가 초기화됩니다."
+  },
+  potion:{
+    name:"확률 업 포션",
+    price:25,
+    description:"1개당 성공 확률 보너스 +1%p. 보너스는 최대 +10%p이며 강화 성공 시 초기화됩니다."
+  },
+  revive:{
+    name:"부활권",
+    price:40,
+    description:"강화 실패 시 사용 여부를 선택할 수 있습니다. 사용하면 이전 단계의 절반에서 부활합니다."
+  }
+};
+
+function freshSave(){
+  return {
+    level:0,
+    coconuts:100,
+    bestLevel:0,
+    bonus:0,
+    inventory:{protection:0,pass:0,potion:0,revive:0},
+    passUsesSinceFailure:0,
+    gallery:[0],
+    vault:[],
+    nextVaultId:1
+  };
+}
+
+function clampInt(value,min,max){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(min,Math.min(max,Math.floor(n))):min;
+}
+
+function loadSave(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return freshSave();
+
+    const parsed=JSON.parse(raw);
+    const base=freshSave();
+    const r={...base,...parsed};
+
+    r.inventory={...base.inventory,...(parsed.inventory||{})};
+    r.passUsesSinceFailure=clampInt(parsed.passUsesSinceFailure??0,0,10);
+    for(const id of Object.keys(itemData)){
+      r.inventory[id]=clampInt(r.inventory[id],0,Number.MAX_SAFE_INTEGER);
+    }
+
+    r.gallery=(Array.isArray(parsed.gallery)?parsed.gallery:[0])
+      .map(v=>clampInt(v,0,MAX_LEVEL));
+    r.vault=Array.isArray(parsed.vault)?parsed.vault:[];
+    r.level=clampInt(r.level,0,MAX_LEVEL);
+    r.coconuts=Math.max(0,Number(r.coconuts)||0);
+    r.bestLevel=clampInt(r.bestLevel,0,MAX_LEVEL);
+    r.bonus=clampInt(r.bonus,0,10);
+
+    if(!r.gallery.includes(0))r.gallery.unshift(0);
+    r.gallery=[...new Set(r.gallery)].sort((a,b)=>a-b);
+
+    r.vault=r.vault.slice(0,MAX_VAULT_SIZE).map((v,i)=>({
+      ...v,
+      id:v.id??i+1,
+      level:clampInt(v.level,0,MAX_LEVEL)
+    }));
+
+    r.nextVaultId=Math.max(
+      Number(r.nextVaultId)||1,
+      ...r.vault.map(v=>Number(v.id)+1||1)
+    );
+
+    return r;
+  }catch(error){
+    console.warn("저장 데이터 읽기 실패:",error);
+    return freshSave();
+  }
+}let save=loadSave();
+let toastTimer=null;
+
+function persist(){
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+  }catch(error){
+    console.error(error);
+    showToast("저장에 실패했어. 브라우저 저장 공간을 확인해 줘.");
+  }
+}
+
+function treeAt(level){
+  return treeData[clampInt(level,0,MAX_LEVEL)];
+}
+
+function chance(){
+  return Math.min(100,BASE_CHANCES[save.level]+save.bonus);
+}
+
+function rememberLevel(level){
+  if(!save.gallery.includes(level))save.gallery.push(level);
+  save.gallery.sort((a,b)=>a-b);
+  save.bestLevel=Math.max(save.bestLevel,level);
+}
+
+function showToast(message){
+  const el=document.getElementById("toast");
+  el.textContent=message;
+  el.style.display="block";
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.style.display="none",2400);
+}
+
+function notify(message){
+  document.getElementById("notice").textContent=message;
+}
+
+function makeImage(tree,cls,onFail){
+  const img=document.createElement("img");
+  img.className=cls;
+  img.src=tree.image;
+  img.alt=tree.name;
+  img.onerror=onFail||(()=>img.remove());
+  return img;
+}
+
+function renderTree(){
+  const tree=treeAt(save.level);
+  const visual=document.getElementById("treeVisual");
+  visual.replaceChildren();
+  visual.className="";
+
+  const img=makeImage(tree,"tree-picture",()=>{
+    img.remove();
+    visual.textContent=tree.emoji;
+    visual.className="tree-emoji";
+  });
+
+  visual.appendChild(img);
+  document.getElementById("treeName").textContent=tree.name;
+  document.getElementById("treeLevel").textContent="현재 단계: +"+save.level;
+  document.getElementById("treeDescription").textContent=tree.description||"설명 준비 중";
+}
+
+function createQuantityInput(id,value=1,max=MAX_PURCHASE_QUANTITY){
+  const input=document.createElement("input");
+  input.type="number";
+  input.min="1";
+  input.max=String(max);
+  input.step="1";
+  input.value=String(value);
+  input.id=id;
+  input.setAttribute("aria-label","수량");
+  return input;
+}
+
+function renderInventory(){
+  const c=document.getElementById("inventoryItems");
+  c.replaceChildren();
+
+  for(const [id,item] of Object.entries(itemData)){
+    const count=save.inventory[id]||0;
+    const card=document.createElement("div");
+    card.className="inventory-card";
+
+    const h=document.createElement("h4");
+    h.textContent=item.name+" × "+count;
+    card.appendChild(h);
+
+    const d=document.createElement("p");
+    d.className="muted";
+    d.textContent=item.description;
+    card.appendChild(d);
+
+    if(id==="protection"||id==="revive"){
+      const info=document.createElement("p");
+      info.className="gold-text";
+      info.textContent="자동 발동 아이템 · 보유 수량: "+count;
+      card.appendChild(info);
+      c.appendChild(card);
+      continue;
+    }
+
+    if(id==="pass"){
+      const remaining=Math.max(0,10-save.passUsesSinceFailure);
+      const info=document.createElement("p");
+      info.className="muted";
+      info.textContent="이번 실패 전까지 사용 가능: "+remaining+" / 10개";
+      card.appendChild(info);
+    }
+
+    if(id==="potion"&&save.bonus>=10){
+      const info=document.createElement("p");
+      info.className="muted";
+      info.textContent="확률 보너스가 이미 최대치야.";
+      card.appendChild(info);
+    }
+
+    const controls=document.createElement("div");
+    controls.className="item-controls";
+
+    const passRemaining=Math.max(0,10-save.passUsesSinceFailure);
+    const quantity=createQuantityInput("useQty_"+id,1,id==="pass"?Math.max(1,Math.min(count,passRemaining,MAX_LEVEL-save.level)):(count||1));
+    quantity.disabled=count<=0||(id==="pass"&&(passRemaining<=0||save.level>=MAX_LEVEL));
+    controls.appendChild(quantity);
+
+    const button=document.createElement("button");
+    button.className="primary";
+    button.textContent=id==="pass"?"패스권 사용":"포션 사용";
+    button.disabled=count<=0||
+      (id==="pass"&&(save.level>=MAX_LEVEL||passRemaining<=0))||
+      (id==="potion"&&save.bonus>=10);
+    button.addEventListener("click",()=>{
+      useItems(id,quantity.value);
+    });
+    controls.appendChild(button);
+    card.appendChild(controls);
+    c.appendChild(card);
+  }
+}
+
+function renderShop(){
+  document.getElementById("shopCoconuts").textContent=save.coconuts;
+  const c=document.getElementById("shopItems");
+  c.replaceChildren();
+
+  for(const [id,item] of Object.entries(itemData)){
+    const card=document.createElement("article");
+    card.className="card";
+
+    const h=document.createElement("h3");
+    h.textContent=item.name;
+
+    const d=document.createElement("p");
+    d.textContent=item.description;
+
+    const p=document.createElement("p");
+    p.className="gold-text";
+    p.textContent="개당 가격: 🥥 "+item.price;
+
+    const controls=document.createElement("div");
+    controls.className="buy-controls";
+
+    const quantity=createQuantityInput("buyQty_"+id,1);
+    const total=document.createElement("p");
+    total.className="gold-text";
+    total.textContent="총가격: 🥥 "+item.price;
+
+    quantity.addEventListener("input",()=>{
+      const amount=clampInt(quantity.value,1,MAX_PURCHASE_QUANTITY);
+      total.textContent="총가격: 🥥 "+(amount*item.price).toLocaleString();
+    });
+
+    const b=document.createElement("button");
+    b.className="primary";
+    b.textContent="선택 수량 구매";
+    b.addEventListener("click",()=>buyItem(id,quantity.value));
+
+    controls.append(quantity);
+    controls.append(total);
+    controls.append(b);
+
+    card.append(h,d,p,controls);
+    c.appendChild(card);
+  }
+}
+
+function renderGallery(){
+  const c=document.getElementById("galleryItems");
+  c.replaceChildren();
+
+  document.getElementById("galleryCount").textContent=save.gallery.length+"개";
+  document.getElementById("gallerySubtitle").textContent=
+    save.gallery.length+" / "+treeData.length+"개 수집";
+
+  for(const level of save.gallery){
+    const t=treeAt(level);
+    const card=document.createElement("article");
+    card.className="card";
+
+    const h=document.createElement("h3");
+    h.textContent="+"+level+" "+t.name;
+
+    const img=makeImage(t,"card-image",()=>{
+      img.remove();
+      const f=document.createElement("p");
+      f.style.fontSize="34px";
+      f.style.textAlign="center";
+      f.textContent=t.emoji;
+      card.insertBefore(f,card.children[1]||null);
+    });
+
+    const d=document.createElement("p");
+    d.className="good";
+    d.textContent="수집 완료";
+
+    const description=document.createElement("p");
+    description.className="tree-description";
+    description.textContent=t.description||"설명 준비 중";
+
+    card.append(h,img,d,description);
+    c.appendChild(card);
+  }
+}
+
+function renderVault(){
+  const c=document.getElementById("vaultItems");
+  const selectedIds=new Set(
+    Array.from(c.querySelectorAll("input[data-vault-select]:checked"))
+      .map(input=>Number(input.value))
+  );
+  c.replaceChildren();
+
+  document.getElementById("vaultCount").textContent=save.vault.length+"개";
+  document.getElementById("storeButton").disabled=save.vault.length>=MAX_VAULT_SIZE;
+
+  const total=save.vault.reduce(
+    (sum,s)=>selectedIds.has(Number(s.id))?sum+treeAt(s.level).price:sum,0
+  );
+  document.getElementById("vaultSellTotal").textContent=total.toLocaleString()+" 코코넛";
+  document.getElementById("sellVaultButton").disabled=selectedIds.size===0;
+
+  if(!save.vault.length){
+    const e=document.createElement("div");
+    e.className="empty";
+    e.textContent="금고가 비어 있어. 현재 야자수를 보관해 봐!";
+    c.appendChild(e);
+    return;
+  }
+
+  for(const s of save.vault){
+    const t=treeAt(s.level);
+    const card=document.createElement("article");
+    card.className="card";
+
+    const selectLabel=document.createElement("label");
+    selectLabel.className="vault-select";
+
+    const checkbox=document.createElement("input");
+    checkbox.type="checkbox";
+    checkbox.dataset.vaultSelect="true";
+    checkbox.value=String(s.id);
+    checkbox.checked=selectedIds.has(Number(s.id));
+    checkbox.setAttribute("aria-label",(s.name||t.name)+" 판매 선택");
+    checkbox.addEventListener("change",renderVault);
+
+    const selectText=document.createElement("span");
+    selectText.textContent="판매 선택 · "+t.price.toLocaleString()+" 코코넛";
+    selectLabel.append(checkbox,selectText);
+
+    const h=document.createElement("h3");
+    h.textContent=s.name||t.name;
+
+    const img=makeImage(t,"card-image",()=>{
+      img.remove();
+      const f=document.createElement("p");
+      f.style.fontSize="34px";
+      f.style.textAlign="center";
+      f.textContent=t.emoji;
+      card.insertBefore(f,card.children[2]||null);
+    });
+
+    const p=document.createElement("p");
+    p.textContent="보관 단계: +"+s.level+" · 판매 가격: "+t.price.toLocaleString()+" 코코넛";
+
+    const b=document.createElement("button");
+    b.className="primary";
+    b.textContent="꺼내기";
+    b.addEventListener("click",()=>takeTree(s.id));
+
+    card.append(selectLabel,h,img,p,b);
+    c.appendChild(card);
+  }
+
+  const currentSelected=new Set(
+    Array.from(c.querySelectorAll("input[data-vault-select]:checked"))
+      .map(input=>Number(input.value))
+  );
+  const selectedTotal=save.vault.reduce(
+    (sum,s)=>currentSelected.has(Number(s.id))?sum+treeAt(s.level).price:sum,0
+  );
+  document.getElementById("vaultSellTotal").textContent=selectedTotal.toLocaleString()+" 코코넛";
+  document.getElementById("sellVaultButton").disabled=currentSelected.size===0;
+}
+
+function sellSelectedVaultTrees(){
+  const selected=Array.from(
+    document.querySelectorAll("#vaultItems input[data-vault-select]:checked")
+  ).map(input=>Number(input.value));
+
+  if(selected.length===0){
+    showToast("판매할 야자수를 선택해 줘.");
+    return;
+  }
+
+  const selectedSet=new Set(selected);
+  const trees=save.vault.filter(s=>selectedSet.has(Number(s.id)));
+  const total=trees.reduce((sum,s)=>sum+treeAt(s.level).price,0);
+
+  if(!confirm(
+    "선택한 야자수 "+trees.length+"개를 판매할까?\n\n"+
+    "받을 코코넛: "+total.toLocaleString()+"개"
+  ))return;
+
+  save.coconuts+=total;
+  save.vault=save.vault.filter(s=>!selectedSet.has(Number(s.id)));
+  notify("시간 금고의 야자수 "+trees.length+"개를 판매하고 코코넛 "+total.toLocaleString()+"개를 받았어.");
+  persist();
+  render();
+  showToast("🥥 선택한 야자수 판매 완료!");
+}function render(){
+  document.getElementById("coconuts").textContent=save.coconuts.toLocaleString();
+  document.getElementById("level").textContent="+"+save.level;
+  document.getElementById("successChance").textContent=chance()+"%";
+  document.getElementById("failureChance").textContent=(100-chance())+"%";
+  document.getElementById("salePrice").textContent=
+    treeAt(save.level).price.toLocaleString()+" 코코넛";
+  document.getElementById("bonus").textContent="+"+save.bonus+"%p";
+  document.getElementById("bestLevel").textContent="+"+save.bestLevel;
+  document.getElementById("itemCount").textContent=Object.keys(itemData).length+"종";
+
+  document.getElementById("enhanceButton").disabled=save.level>=MAX_LEVEL;
+  document.getElementById("sellButton").disabled=save.level===0;
+  document.getElementById("resetButton").disabled=save.level===0&&save.bonus===0;
+  document.getElementById("storeButton").disabled=save.vault.length>=MAX_VAULT_SIZE;
+
+  renderTree();
+  renderInventory();
+  renderShop();
+  renderGallery();
+  renderVault();
+}
+
+function enhance(){
+  if(save.level>=MAX_LEVEL){
+    notify("최대 단계 +30에 도달했어!");
+    return;
+  }
+
+  const old=save.level;
+  const successChance=chance();
+
+  if(Math.random()*100<successChance){
+    save.level++;
+    rememberLevel(save.level);
+    save.bonus=0;
+    notify("강화 성공! +"+old+" → +"+save.level);
+    showToast("✨ 강화 성공!");
+  }else{
+    save.passUsesSinceFailure=0;
+    if(save.inventory.protection>0){
+    save.inventory.protection--;
+    notify("실패 방지권이 발동했어! 야자수를 지켰다.");
+    showToast("🛡️ 야자수 보호 성공");
+  }else if(save.inventory.revive>0){
+    const revivedLevel=Math.floor(old/2);
+    const useRevive=confirm(
+      "강화에 실패했어!\n\n"+
+      "부활권을 사용해서 +"+revivedLevel+
+      " 단계로 부활할까?\n\n"+
+      "취소를 누르면 야자수가 +0으로 돌아가."
+    );
+
+    if(useRevive){
+      save.inventory.revive--;
+      save.level=revivedLevel;
+      save.bonus=0;
+      notify("부활권을 사용해 +"+save.level+"에서 부활했어.");
+      showToast("🔄 부활권 발동!");
+    }else{
+      save.level=0;
+      save.bonus=0;
+      notify("부활권을 사용하지 않았어. 야자수가 +0으로 돌아갔어.");
+      showToast("💥 강화 실패...");
+    }
+    }else{
+      save.level=0;
+      save.bonus=0;
+      notify("강화 실패! 야자수가 폭발해서 +0으로 돌아갔어.");
+      showToast("💥 강화 실패...");
+    }
+  }
+
+  persist();
+  render();
+}
+
+function sellTree(){
+  if(save.level<=0){
+    notify("+0 야자수는 판매할 수 없어.");
+    return;
+  }
+
+  const t=treeAt(save.level);
+  if(!confirm("+"+save.level+" "+t.name+"을(를) "+t.price+" 코코넛에 판매할까?"))return;
+
+  save.coconuts+=t.price;
+  save.level=0;
+  save.bonus=0;
+  notify("야자수를 판매하고 코코넛 "+t.price+"개를 받았어.");
+  persist();
+  render();
+}
+
+function resetTree(){
+  if(save.level===0&&save.bonus===0)return;
+  if(!confirm("현재 야자수와 확률 보너스를 초기화할까?"))return;
+
+  save.level=0;
+  save.bonus=0;
+  notify("야자수를 +0으로 초기화했어.");
+  persist();
+  render();
+}
+
+/* 원하는 수량을 한 번에 구매 */
+function buyItem(id,rawQuantity){
+  const item=itemData[id];
+  if(!item)return;
+
+  const quantity=clampInt(rawQuantity,1,MAX_PURCHASE_QUANTITY);
+  const total=quantity*item.price;
+
+  if(!Number.isSafeInteger(total)){
+    showToast("구매 금액이 너무 커.");
+    return;
+  }
+
+  if(save.coconuts<total){
+    showToast("코코넛이 부족해! 필요 금액: "+total.toLocaleString());
+    return;
+  }
+
+  if(!confirm(
+    item.name+" "+quantity+"개를 구매할까?\n\n"+
+    "개당 가격: "+item.price+" 코코넛\n"+
+    "총가격: "+total.toLocaleString()+" 코코넛"
+  ))return;
+
+  save.coconuts-=total;
+  save.inventory[id]=(save.inventory[id]||0)+quantity;
+
+  notify(item.name+" "+quantity+"개를 구매했어.");
+  showToast("🛒 "+item.name+" "+quantity+"개 구매 완료!");
+
+  persist();
+  render();
+}
+
+/* 패스권과 포션을 원하는 수량만큼 한 번에 사용 */
+function useItems(id,rawQuantity){
+  if(id!=="pass"&&id!=="potion")return;
+
+  const owned=save.inventory[id]||0;
+  const requested=clampInt(rawQuantity,1,MAX_PURCHASE_QUANTITY);
+
+  if(owned<=0){
+    showToast("아이템이 없어!");
+    return;
+  }
+
+  let quantity=Math.min(requested,owned);
+
+  if(id==="pass"){
+    const remaining=Math.max(0,10-save.passUsesSinceFailure);
+    const room=Math.max(0,MAX_LEVEL-save.level);
+    if(remaining<=0){
+      showToast("강화 실패 전까지 사용할 수 있는 패스권 10개를 모두 사용했어.");
+      return;
+    }
+    if(room<=0){
+      showToast("이미 최대 강화 단계야.");
+      return;
+    }
+
+    quantity=Math.min(requested,owned,remaining,room);
+    if(!confirm(
+      "패스권 "+quantity+"개를 사용할까?\n"+
+      "강화 단계: +"+save.level+" → +"+(save.level+quantity)+"\n"+
+      "실패 전 사용량: "+(save.passUsesSinceFailure+quantity)+" / 10개"
+    ))return;
+
+    const start=save.level;
+    save.inventory.pass-=quantity;
+    save.level+=quantity;
+    save.passUsesSinceFailure+=quantity;
+    for(let level=start+1;level<=save.level;level++)rememberLevel(level);
+    save.bonus=0;
+    notify("패스권 "+quantity+"개 사용! +"+start+" → +"+save.level);
+    showToast("🎫 패스권 "+quantity+"개 사용 완료!");
+  }else{
+    const room=10-save.bonus;
+    if(room<=0){
+      showToast("확률 보너스는 이미 최대 +10%p야.");
+      return;
+    }
+
+    quantity=Math.min(quantity,room);
+
+    if(!confirm(
+      "확률 업 포션 "+quantity+"개를 사용할까?\n"+
+      "확률 보너스: +"+save.bonus+"%p → +"+(save.bonus+quantity)+"%p"
+    ))return;
+
+    save.inventory.potion-=quantity;
+    save.bonus+=quantity;
+
+    notify("포션 "+quantity+"개 사용! 확률 보너스 +"+save.bonus+"%p");
+    showToast("🧪 성공 확률 보너스 +"+quantity+"%p");
+  }
+
+  persist();
+  render();
+}
+
+function closePanels(){
+  document.querySelectorAll(".extra-panel").forEach(p=>p.classList.remove("open"));
+}
+
+function openPanel(id){
+  closePanels();
+  document.getElementById(id).classList.add("open");
+  render();
+}
+
+function storeTree(){
+  if(save.level<=0){
+    showToast("+0 야자수는 보관할 수 없어.");
+    return;
+  }
+  if(save.vault.length>=MAX_VAULT_SIZE){
+    showToast("시간 금고가 가득 찼어! 최대 50개까지 보관 가능해.");
+    return;
+  }
+
+  const t=treeAt(save.level);
+  const storedLevel=save.level;
+
+  save.vault.push({
+    id:save.nextVaultId++,
+    level:storedLevel,
+    name:t.name
+  });
+
+  save.level=0;
+  save.bonus=0;
+
+  notify("+"+storedLevel+" 야자수를 시간 금고에 보관했어. 현재 야자수는 +0으로 초기화됐어.");
+  persist();
+  render();
+  showToast("🗄️ 보관 완료! 현재 야자수는 +0이야.");
+}
+
+function takeTree(id){
+  const i=save.vault.findIndex(v=>v.id===id);
+  if(i<0){
+    showToast("해당 야자수를 금고에서 찾을 수 없어.");
+    return;
+  }
+
+  const storedTree=save.vault[i];
+  if(!confirm(
+    "금고의 +"+storedTree.level+" 야자수를 꺼낼까?\n\n"+
+    "현재 야자수는 금고에 보관되지 않고 사라져."
+  ))return;
+
+  const selectedLevel=clampInt(storedTree.level,0,MAX_LEVEL);
+  save.vault.splice(i,1);
+  save.level=selectedLevel;
+  save.bonus=0;
+
+  notify("금고의 +"+selectedLevel+" 야자수를 꺼냈어. 기존 야자수는 보관되지 않았어.");
+  persist();
+  render();
+  showToast("🗝️ 야자수 꺼내기 완료!");
+}
+
+function hardReset(){
+  if(!confirm("하드리셋할까?\n\n코코넛, 강화 단계, 인벤토리, 갤러리, 시간 금고를 포함한 이 게임의 저장 데이터가 전부 초기화돼. 이 작업은 되돌릴 수 없어."))return;
+  save=freshSave();
+  persist();
+  closePanels();
+  render();
+  notify("하드리셋 완료! 야자수 강화 게임을 처음부터 시작해.");
+  showToast("🧹 저장 데이터가 초기화됐어.");
+}
+
+function tutorial(){
+  alert(
+    "🌴 야자수 강화 게임 튜토리얼\n\n"+
+    "1. 강화 버튼으로 야자수를 강화해.\n"+
+    "2. 실패하면 야자수가 +0으로 돌아가. 실패 방지권과 부활권으로 대비할 수 있어.\n"+
+    "3. 강화된 야자수는 판매해서 코코넛을 얻을 수 있어.\n"+
+    "4. 상점에서 아이템을 여러 개 한 번에 구매할 수 있어.\n"+
+    "5. 패스권 1개는 강화 단계를 +1 올려. 강화 실패 전까지 최대 10개를 사용할 수 있고, 실패하면 사용 한도가 초기화돼. 패스권 가격은 300 코코넛이야. 포션은 원하는 수량만큼 사용할 수 있어.\n"+
+    "6. 실패 방지권과 부활권은 강화 실패 시 자동으로 발동해.\n"+
+    "7. 갤러리는 성공적으로 도달한 외형을 기록해. 실패해도 기록은 사라지지 않아.\n"+
+    "8. +0 야자수는 시간 금고에 보관할 수 없어. 보관하면 현재 야자수는 +0으로 초기화돼. 꺼낸 야자수는 현재 야자수가 되고, 기존 야자수는 보관되지 않아.\n"+
+    "9. 시간 금고에서 여러 야자수를 선택해 판매할 수 있어.\n\n"+
+    "현재 버전은 +0부터 +30까지 지원해."
+  );
+}
+
+/* 신부의 화면 균열 이스터 에그: 첫 1분 유휴, 이후 출현할 때마다 대기 시간이 1분 증가 */
+const brideEffect=document.getElementById("brideEffect");
+const brideCaption=document.getElementById("brideCaption");
+let idleThresholdMs=60_000;
+let lastActivityAt=Date.now();
+let brideEffectTimer=null;
+let brideCaptionTimer=null;
+let brideEventRunning=false;
+
+function resetIdleTimer(){
+  lastActivityAt=Date.now();
+}
+
+function triggerBrideEvent(){
+  if(brideEventRunning)return;
+  brideEventRunning=true;
+  idleThresholdMs+=60_000;
+  brideEffect.classList.add("show");
+  brideEffect.classList.remove("caption");
+  brideEffect.setAttribute("aria-hidden","false");
+  clearTimeout(brideEffectTimer);
+  clearTimeout(brideCaptionTimer);
+
+  // 균열 GIF를 먼저 보여 준 다음 대사를 잠깐 표시하고 효과를 닫는다.
+  brideEffectTimer=setTimeout(()=>{
+    brideEffect.classList.add("caption");
+    brideCaptionTimer=setTimeout(()=>{
+      brideEffect.classList.remove("show","caption");
+      brideEffect.setAttribute("aria-hidden","true");
+      brideEventRunning=false;
+      resetIdleTimer();
+    },2200);
+  },1400);
+}
+
+const idleActivityEvents=["pointerdown","keydown","input","change","touchstart","wheel"];
+idleActivityEvents.forEach(eventName=>{
+  document.addEventListener(eventName,resetIdleTimer,{passive:true});
+});
+setInterval(()=>{
+  if(!brideEventRunning&&Date.now()-lastActivityAt>=idleThresholdMs){
+    triggerBrideEvent();
+  }
+},500);
+
+document.getElementById("enhanceButton").addEventListener("click",enhance);
+document.getElementById("sellButton").addEventListener("click",sellTree);
+document.getElementById("resetButton").addEventListener("click",resetTree);
+document.getElementById("shopButton").addEventListener("click",()=>openPanel("shopPanel"));
+document.getElementById("galleryButton").addEventListener("click",()=>openPanel("galleryPanel"));
+document.getElementById("vaultButton").addEventListener("click",()=>openPanel("vaultPanel"));
+document.getElementById("storeButton").addEventListener("click",storeTree);
+document.getElementById("sellVaultButton").addEventListener("click",sellSelectedVaultTrees);
+document.getElementById("tutorialButton").addEventListener("click",tutorial);
+document.getElementById("hardResetButton").addEventListener("click",hardReset);
+
+/* 시설 주인 이미지가 없을 때도 화면의 구매/보관 기능은 정상 작동하도록 처리 */
+document.querySelectorAll(".facility-owner").forEach(img=>{
+  img.addEventListener("error",()=>{
+    img.style.display="none";
+    const stage=img.parentElement;
+    if(stage&&!stage.querySelector(".owner-image-missing")){
+      const hint=document.createElement("div");
+      hint.className="owner-image-missing";
+      hint.textContent=img.alt+" 이미지 파일을 같은 폴더에 넣어 주세요.";
+      hint.style.cssText="position:absolute;top:24px;left:12px;right:12px;color:#d8c9a7;font-size:13px;text-align:center;z-index:1";
+      stage.appendChild(hint);
+    }
+  },{once:true});
+});
+
+document.querySelectorAll("[data-close]").forEach(b=>{
+  b.addEventListener("click",closePanels);
+});
+
+document.querySelectorAll(".extra-panel").forEach(p=>{
+  p.addEventListener("click",e=>{
+    if(e.target===p)closePanels();
+  });
+});
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape")closePanels();
+});
+
+document.getElementById("closeButton").addEventListener("click",()=>{
+  if(confirm("게임을 폐장할까? 진행 상황은 자동 저장돼.")){
+    persist();
+    closePanels();
+    notify("게임을 폐장했어. 브라우저 탭을 닫아도 돼.");
+    showToast("진행 상황 저장 완료!");
+  }
+});
+
+rememberLevel(save.level);
+persist();
+render();
+</script>
+</body>
+</html>
