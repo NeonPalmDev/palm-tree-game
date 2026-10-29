@@ -310,9 +310,21 @@ const treeData = [
   {level:10,name:"최강의 해결사 야자수",image:"palm10.jpg",emoji:"⚔️🌴",price:600},
   ...Array.from({length:20},(_,i)=>{
     const level=i+11;
+    const evolvedNames={
+      11:"진화 야자수",
+      12:"진화 바나나 야자수",
+      13:"진화 코코넛 야자수",
+      14:"진화 영정사진 야자수",
+      15:"진화 영정사진 바나나 야자수",
+      16:"진화 날개 야자수",
+      17:"진화 천사 야자수",
+      18:"진화 백야 야자수",
+      19:"진화 종말 야자수",
+      20:"각성 진화 야자수"
+    };
     return {
       level,
-      name:`미지의 야자수 +${level}`,
+      name:evolvedNames[level] || `미지의 야자수 +${level}`,
       image:`palm${level}.jpg`,
       emoji:"🌴✨",
       price:600+(level-10)*150
@@ -423,7 +435,11 @@ function treeAt(level){
   return treeData[clampInt(level,0,MAX_LEVEL)];
 }
 
+let devModeEnabled=false;
+let devChanceOverride=null;
+
 function chance(){
+  if(devModeEnabled && devChanceOverride!==null) return devChanceOverride;
   return Math.min(100,BASE_CHANCES[save.level]+save.bonus);
 }
 
@@ -1124,6 +1140,137 @@ document.getElementById("closeButton").addEventListener("click",()=>{
     showToast("진행 상황 저장 완료!");
   }
 });
+
+
+function setupLocalDeveloperMode(){
+  // 개발자 도구는 로컬 파일 또는 localhost에서만 제공한다.
+  const isLocalDev =
+    location.protocol === "file:" ||
+    location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1";
+
+  if(!isLocalDev) return;
+
+  const style=document.createElement("style");
+  style.textContent=`
+    #devPanel{position:fixed;z-index:99999;right:16px;top:16px;width:min(340px,calc(100vw - 32px));
+      max-height:calc(100vh - 32px);overflow:auto;background:#17191f;color:#f5f5f5;border:1px solid #9d83ff;
+      border-radius:14px;padding:16px;box-shadow:0 12px 40px #0009;font:14px/1.45 system-ui,sans-serif}
+    #devPanel[hidden]{display:none}
+    #devPanel h2{font-size:18px;margin:0 0 8px}
+    #devPanel p{margin:6px 0 12px;color:#c9c9d2}
+    #devPanel label{display:block;margin:12px 0 5px;font-weight:600}
+    #devPanel input[type=number]{box-sizing:border-box;width:100%;padding:8px;border-radius:7px;border:1px solid #555;background:#252832;color:white}
+    #devPanel .devRow{display:flex;gap:8px;margin-top:10px}
+    #devPanel button{padding:8px 10px;border:0;border-radius:7px;cursor:pointer;background:#8d75ed;color:#fff;font-weight:700}
+    #devPanel button.secondary{background:#393d49}
+    #devPanel .devStatus{font-size:12px;color:#b8f3c8;margin-top:8px}
+  `;
+  document.head.appendChild(style);
+
+  const panel=document.createElement("section");
+  panel.id="devPanel";
+  panel.hidden=true;
+  panel.innerHTML=`
+    <h2>🛠️ 로컬 개발자 모드</h2>
+    <p>이 패널은 이 컴퓨터에서 로컬로 연 게임에만 표시돼. 설정은 이 로컬 저장 데이터에 적용돼.</p>
+    <label><input id="devEnabled" type="checkbox"> 개발자 효과 활성화</label>
+    <label for="devCoconuts">코코넛 설정</label>
+    <div class="devRow">
+      <button id="devHugeCoconuts" type="button">코코넛 크게 설정</button>
+      <button id="devResetCoconuts" class="secondary" type="button">코코넛 0개</button>
+    </div>
+    <label for="devChance">강화 성공 확률 (0~100%)</label>
+    <input id="devChance" type="number" min="0" max="100" step="1" value="100">
+    <div class="devRow">
+      <button id="devSetChance" type="button">확률 적용</button>
+      <button id="devNormalChance" class="secondary" type="button">기본 확률</button>
+    </div>
+    <label for="devLevel">현재 강화 단계 (0~최대 단계)</label>
+    <input id="devLevel" type="number" min="0" max="${MAX_LEVEL}" step="1" value="${save.level}">
+    <div class="devRow">
+      <button id="devSetLevel" type="button">단계 적용</button>
+      <button id="devClose" class="secondary" type="button">닫기</button>
+    </div>
+    <div id="devStatus" class="devStatus" role="status"></div>
+  `;
+  document.body.appendChild(panel);
+
+  const status=message=>{
+    document.getElementById("devStatus").textContent=message;
+  };
+  const saveAndRefresh=()=>{
+    persist();
+    render();
+    document.getElementById("devLevel").value=save.level;
+    status("적용 완료 · 현재 단계 +"+save.level);
+  };
+
+  document.addEventListener("keydown",event=>{
+    if(event.ctrlKey && event.shiftKey && event.key.toLowerCase()==="d"){
+      event.preventDefault();
+      panel.hidden=!panel.hidden;
+      document.getElementById("devLevel").value=save.level;
+    }
+  });
+
+  document.getElementById("devEnabled").addEventListener("change",event=>{
+    devModeEnabled=event.target.checked;
+    render();
+    status(devModeEnabled ? "개발자 효과 활성화됨" : "개발자 효과 비활성화됨");
+  });
+
+  document.getElementById("devHugeCoconuts").addEventListener("click",()=>{
+    // Infinity는 JSON 저장 시 null이 되므로 큰 유한값을 사용한다.
+    save.coconuts=999999999999999;
+    saveAndRefresh();
+    status("코코넛을 매우 큰 값으로 설정했어.");
+  });
+
+  document.getElementById("devResetCoconuts").addEventListener("click",()=>{
+    save.coconuts=0;
+    saveAndRefresh();
+    status("코코넛을 0개로 설정했어.");
+  });
+
+  document.getElementById("devSetChance").addEventListener("click",()=>{
+    const raw=Number(document.getElementById("devChance").value);
+    if(!Number.isFinite(raw)){
+      status("성공 확률을 0~100 사이 숫자로 입력해 줘.");
+      return;
+    }
+    devChanceOverride=Math.max(0,Math.min(100,raw));
+    document.getElementById("devChance").value=devChanceOverride;
+    devModeEnabled=true;
+    document.getElementById("devEnabled").checked=true;
+    render();
+    status("개발자 성공 확률 "+devChanceOverride+"% 적용됨.");
+  });
+
+  document.getElementById("devNormalChance").addEventListener("click",()=>{
+    devChanceOverride=null;
+    render();
+    status("기본 강화 확률로 되돌렸어.");
+  });
+
+  document.getElementById("devSetLevel").addEventListener("click",()=>{
+    const raw=Number(document.getElementById("devLevel").value);
+    if(!Number.isFinite(raw)){
+      status("강화 단계를 숫자로 입력해 줘.");
+      return;
+    }
+    save.level=Math.max(0,Math.min(MAX_LEVEL,Math.floor(raw)));
+    save.bonus=0;
+    rememberLevel(save.level);
+    saveAndRefresh();
+  });
+
+  document.getElementById("devClose").addEventListener("click",()=>{
+    panel.hidden=true;
+  });
+}
+
+setupLocalDeveloperMode();
 
 rememberLevel(save.level);
 persist();
